@@ -14,8 +14,9 @@ public class R1_NormalReference {
     }
     public static void main(String[] args) {
         MyObject obj = new MyObject();
+        System.out.println(obj);
         // 如果不置null 不会gc，此为强
-        // obj = null;
+        obj = null;
         System.gc();
         System.out.println(obj);
     }
