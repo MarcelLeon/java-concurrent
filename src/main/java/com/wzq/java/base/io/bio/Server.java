@@ -19,6 +19,7 @@ public class Server {
         try {
             ServerSocket serverSocket = new ServerSocket(8989);
             for (; ;) {
+                // 阻塞 等待连接
                 Socket sc = serverSocket.accept();
                 new Thread(new ServerSocketHandler(sc)).start();
             }
