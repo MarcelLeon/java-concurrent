@@ -1,10 +1,8 @@
-package com.wzq.java.base.nio;
+package com.wzq.java.base.io.bio;
 
 import java.io.*;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketAddress;
 
 /**
  * @author: create by wangzq
@@ -20,7 +18,7 @@ public class Server {
     public static void startServer() {
         try {
             ServerSocket serverSocket = new ServerSocket(8989);
-            for (; ; ) {
+            for (; ;) {
                 Socket sc = serverSocket.accept();
                 new Thread(new ServerSocketHandler(sc)).start();
             }
@@ -54,6 +52,7 @@ public class Server {
                     System.out.println(receiveMsg);
                     MsgType requestType = handleMsgGetType(receiveMsg);
                     writer.println("你发出的消息属于：".concat(requestType.name().concat(" 类型")));
+                    writer.flush();
                     if (requestType == MsgType.FAREWELL) {
                         flag = false;
                     }
