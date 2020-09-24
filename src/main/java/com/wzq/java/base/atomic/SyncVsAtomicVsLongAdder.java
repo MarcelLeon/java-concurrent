@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.stream.IntStream;
 
 public class SyncVsAtomicVsLongAdder {
-    static Long long1 = 0L;
+    static volatile Long long1 = 0L;
     static AtomicLong atomicLong = new AtomicLong(0L);
     static LongAdder longAdder = new LongAdder();
 
@@ -18,11 +18,12 @@ public class SyncVsAtomicVsLongAdder {
         ThreadPoolExecutor executor = new ThreadPoolExecutor(100, 4096, 60, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(4096));
 
         Phaser phaser = new Phaser();
-        Object lock = new Object();
+        final Object lock = new Object();
 
         phaser.bulkRegister(concurrent);
+        System.out.println("-----phase:".concat(String.valueOf(phaser.getPhase())));
         long currentTime1 = System.currentTimeMillis();
-        IntStream.range(0, concurrent).forEach(i -> {
+        IntStream.range(1, concurrent).forEach(i -> {
             executor.submit(() -> {
                 IntStream.range(0, forTimes).forEach(a -> {
                             synchronized (lock) {
@@ -30,36 +31,37 @@ public class SyncVsAtomicVsLongAdder {
                             }
                         }
                 );
-                phaser.arriveAndAwaitAdvance();
+                phaser.arrive();
             });
         });
-//        phaser.awaitAdvance(concurrent);
+        phaser.arriveAndAwaitAdvance();
+        System.out.println("-----phase:".concat(String.valueOf(phaser.getPhase())));
         System.out.println("sync cost:".concat(String.valueOf(System.currentTimeMillis() - currentTime1)));
 
-//        long currentTime2 = System.currentTimeMillis();
-//        IntStream.range(0, concurrent).forEach(i -> {
-//            executor.submit(() -> {
-//                IntStream.range(0, forTimes).forEach(a -> atomicLong.incrementAndGet());
-//                phaser.arrive();
-//            });
-//        });
-//        phaser.awaitAdvance(concurrent);
-//        System.out.println("atomic cost:".concat(String.valueOf(System.currentTimeMillis() - currentTime2)));
-//
-//        long currentTime3 = System.currentTimeMillis();
-//        IntStream.range(0, concurrent).forEach(i -> {
-//            executor.submit(() -> {
-//                IntStream.range(0, forTimes).forEach(a -> longAdder.increment()
-//                );
-//
-//                phaser.arrive();
-//            });
-//        });
-//        phaser.awaitAdvance(concurrent);
-//        System.out.println("longAdder cost:".concat(String.valueOf(System.currentTimeMillis() - currentTime3)));
+        long currentTime2 = System.currentTimeMillis();
+        IntStream.range(1, concurrent).forEach(i -> {
+            executor.submit(() -> {
+                IntStream.range(0, forTimes).forEach(a -> atomicLong.incrementAndGet());
+                phaser.arrive();
+            });
+        });
+        phaser.arriveAndAwaitAdvance();
+        System.out.println("-----phase:".concat(String.valueOf(phaser.getPhase())));
+        System.out.println("atomic cost:".concat(String.valueOf(System.currentTimeMillis() - currentTime2)));
+
+        long currentTime3 = System.currentTimeMillis();
+        IntStream.range(1, concurrent).forEach(i -> {
+            executor.submit(() -> {
+                IntStream.range(0, forTimes).forEach(a -> longAdder.increment());
+                phaser.arrive();
+            });
+        });
+        phaser.arriveAndAwaitAdvance();
+        System.out.println("-----phase:".concat(String.valueOf(phaser.getPhase())));
+        System.out.println("longAdder cost:".concat(String.valueOf(System.currentTimeMillis() - currentTime3)));
 
         System.out.println("long value:".concat(long1.toString()));
-        System.out.println("atomic value:".concat(atomicLong.toString()));
+        System.out.println("atomic value:".concat(String.valueOf(atomicLong.get())));
         System.out.println("longAdder value:".concat(String.valueOf(longAdder.longValue())));
         executor.shutdown();
     }
